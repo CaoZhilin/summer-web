@@ -1,10 +1,19 @@
 html,body{
-	background:#bcef64;
+	background:#bfcb3c;
 	padding:0;
 	margin:0;
 	width:100%;
 	overflow: hidden;
+	height:100%;
 }
+canvas{
+	background:#bfcb3c;
+	padding:0;
+	margin:0;
+	overflow: hidden;
+	position:absolute;
+}
+
 li{
 	list-style: none;
 }
@@ -84,11 +93,11 @@ li{
 }
 .guide-background{
 	float:left;
-	background-image: url(../images/zhilin-ltr-small.png);
+	background-image: url(../../images/zhilin-ltr-small.png);
   	background-position: left;
   	background-repeat: no-repeat;
   	height: 100px;
-  	width: 75px;
+  	width: 58px;
   	-webkit-animation-name: walk;
   	animation-name: walk;
   	-webkit-animation-duration: 1s;
@@ -101,11 +110,11 @@ li{
 }
 .start-background{
 	float:left;
-	background-image: url(../images/liuli-ltr-small.png);
+	background-image: url(../../images/liuli-ltr-small.png);
   	background-position: left;
   	background-repeat: no-repeat;
   	height: 100px;
-  	width: 75px;
+  	width: 58px;
   	-webkit-animation-name: walk;
   	animation-name: walk;
   	-webkit-animation-duration: 1s;
@@ -119,11 +128,11 @@ li{
 }
 .info-background{
 	float:left;
-	background-image: url(../images/eval-ltr-small.png);
+	background-image: url(../../images/eval-ltr-small.png);
   	background-position: left;
   	background-repeat: no-repeat;
   	height: 100px;
-  	width: 75px;
+  	width: 70px;
   	-webkit-animation-name: walk;
   	animation-name: walk;
   	-webkit-animation-duration: 1s;
@@ -154,21 +163,21 @@ li{
 .choose .choose-background{
 	width:100%;
 	height:80px;
-	background-image:url("../images/choose.png");
+	background-image:url("../../images/choose.png");
 	background-position: center;
   	background-repeat: center;
 	-webkit-animation: change 1s .5s linear infinite;
 	animation: change 1s .5s linear infinite;
 }
 @-webkit-keyframes change{
-    0 {background-image:url("../images/choose.png");}
-    50% {background-image:url("../images/choose0.png");}
-    100% {background-image:url("../images/choose.png");}
+    0 {background-image:url("../../images/choose.png");}
+    50% {background-image:url("../../images/choose0.png");}
+    100% {background-image:url("../../images/choose.png");}
 }
 @keyframes change{
-    0 {background-image:url("../images/choose.png");}
-    50% {background-image:url("../images/choose0.png");}
-    100% {background-image:url("../images/choose.png");}
+    0 {background-image:url("../../images/choose.png");}
+    50% {background-image:url("../../images/choose0.png");}
+    100% {background-image:url("../../images/choose.png");}
 }
 #liuli{
 	float:left;
@@ -359,4 +368,41 @@ li{
 .tooltip-effect-2:hover .tooltip-shape-2 svg path#path4 {
 	-webkit-transition-delay: 0.21s;
 	transition-delay: 0.21s;
+}
+#little-map_container{
+	width:450px;
+	height:225px;
+	margin:0;
+	position:absolute;
+	left:0;
+	top:0;
+	z-index:1000;
+}
+.little-map{
+	width:400px;
+	height:300px;
+	margin:0;
+	position:absolute;
+	left:0;
+	top:0;
+	z-index:1000;
+	border:2px solid #47ded5;
+}
+#map_container{
+	margin:0;
+	position:absolute;
+	left:0;
+	top:0;
+	z-index:500;
+	height:100%;
+	width:100%;
+
+}
+.map{
+	/*width:100%;
+	height:900px;*/
+	margin:0;
+	position:absolute;
+	top:0;
+	z-index:500;
 }

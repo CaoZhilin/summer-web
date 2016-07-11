@@ -11,66 +11,12 @@
         <script src='lib/quintus_2d.js'></script>
         <script src='lib/quintus_touch.js'></script>
         <script src='lib/quintus_ui.js'></script>
+        <link rel="stylesheet" href="static/css/main.css">
     </head>
-    <body style="background-color: black;">
-        <script>
-        var Q = Quintus()
-            .include("Sprites, Scenes, Input, 2D, Touch, UI,Anim")
-            .setup({
-                width: 1500,
-                height: 1000,
-                development: true
-            }).controls().touch();            
-        
-      
-        //player
-        Q.Sprite.extend("Player",{
-            init: function(p) {
-              this._super(p, { asset: "player.png", x: 900, y: 2340, jumpSpeed: -380});
-              this.add('2d, platformerControls');              
-            },
-            step: function(dt) {
-                if(Q.inputs['left'] && this.p.direction == 'right') {
-                    this.p.flip = 'x';
-                } 
-                if(Q.inputs['right']  && this.p.direction == 'left') {
-                    this.p.flip = false;                    
-                }
-            }                    
-          });
-        Q.Sprite.extend("liuli",{
-        init:function(p){
-            this._super(p,{sheet:"liuli",sprite:"liuli",frame:0});
-            this.add("animation");
-        }
-    });
-    Q.animations('liuli',{run:{frames:[0,1,2,3,4],rate:1/8,loop:true},die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2},no_stroke:{frames:[6],loop:false}});            
-        
-        Q.scene("level1",function(stage) {
-          
-            var background = new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex: 0, sheet: 'tiles', tileW: 30, tileH: 30, type: Q.SPRITE_NONE });
-            stage.insert(background);
-            
-            stage.collisionLayer(new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex:1,  sheet: 'tiles', tileW: 30, tileH: 30 }));
-          
-            var player = stage.insert(new Q.Player());
-            var liuli=stage.insert(new Q.liuli({x:900,y:2340}));
-            liuli.play("run");
-
-            stage.add("viewport").follow(player,{x: true, y: true},{minX: 0, maxX: background.p.w, minY: 0, maxY: background.p.h});
-          
-        });
-        alert('aha');
-        
-        //load assets
-        Q.load("smallmap.png, player.png, liuli-ltr-small.png,zhilin-ltr-small.png, eval-rtl.png, level1.tmx", function() {
-          Q.sheet("tiles","smallmap.png", { tilew: 30, tileh: 30});   
-          Q.sheet("liuli","liuli-ltr-small.png",{tilew: 75,tileh: 100,sx: 0,sy: 0,w: 375,h: 100}); 
-          Q.sheet("zhilin","zhilin-ltr-small.png",{tilew: 75,tileh: 100,sx: 0,sy: 0,w: 375,h: 100});
-          Q.stageScene("level1");
-        });
-        
-        
-        </script>
+    <body>
+        <canvas class="little-map" id="little-map"></canvas>
+        <canvas class="map" id="map"></canvas>
+        <script src="https://cdn.bootcss.com/jquery/3.1.0/jquery.min.js"></script>
+        <script src="static/js/main.js"></script>
     </body>
 </html>
