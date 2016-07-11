@@ -27,7 +27,7 @@
         Q.Sprite.extend("Player",{
             init: function(p) {
               this._super(p, { asset: "player.png", x: 900, y: 2340, jumpSpeed: -380});
-              this.add('platformerControls');              
+              this.add('2d, platformerControls');              
             },
             step: function(dt) {
                 if(Q.inputs['left'] && this.p.direction == 'right') {
@@ -60,7 +60,7 @@
             stage.add("viewport").follow(player,{x: true, y: true},{minX: 0, maxX: background.p.w, minY: 0, maxY: background.p.h});
           
         });
-        
+        alert('aha');
         
         //load assets
         Q.load("smallmap.png, player.png, liuli-ltr-small.png,zhilin-ltr-small.png, eval-rtl.png, level1.tmx", function() {
