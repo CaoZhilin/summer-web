@@ -68,12 +68,12 @@ window.addEventListener("load",function(){
           		}
     		},
           });
-    Q.sprite.extend("Box",{
+    Q.Sprite.extend("Box",{
     	init:function(p){
     		this._super(p,{sheet:"box",sprite:"box",vx:0,vy:0});
     		this.add('2d, platformerControls');
             this.add("animation");           
-    	};
+    	}
     });
     //component for common enemy behaviors
         Q.component("commonEnemy", {
@@ -146,7 +146,7 @@ window.addEventListener("load",function(){
         }
     });*/
     //animations
-    Q.animations({'Player',{
+    Q.animations('Player',{
 					run:{frames:[0,1,2,3,4],next:'stand_right',rate:1/4,loop:true},
 					op_run:{frames:[9,8,7,6,5],next: 'stand_left',rate:1/4,loop:true},
 					stand_left: {frames: [9]},
@@ -155,11 +155,7 @@ window.addEventListener("load",function(){
 					drop:{frames: [10], next:"stand_down",rate: 1},
 					stand_up:{frames:[10]},
 					stand_down:{frames:[10]},
-					die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}}
-				},
-				{'box',{
-
-				}
+					die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}
 				}
 	);
         
