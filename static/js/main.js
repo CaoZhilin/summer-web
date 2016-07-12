@@ -107,6 +107,10 @@ window.addEventListener("load",function(){
               this.skill2=new Q.Skill({frame:[2],effect_class:"senior",state:"islock",name:"round",scale:0.4,x:this.p.x+100,y:this.p.y+350,vx:0,vy:0});
             },
             step:function(dt) {
+            if(this.p.timeInvincible > 0) {
+              this.p.timeInvincible = Math.max(this.p.timeInvincible - dt, 0);
+              //console.log(this.p.timeInvincible);
+            }
                 
         		if(Q.inputs['up']) {
           		this.play("jump"); 
@@ -139,9 +143,7 @@ window.addEventListener("load",function(){
                 this.lifeBar.p.x = this.p.x;
                 this.lifeBar.p.y = this.p.y - 100;
 
-              if(this.p.timeInvincible > 0) {
-                this.p.timeInvincible = Math.max(this.p.timeInvincible - dt, 0);
-              }
+              
                 this.skill0.p.x=this.p.x-100;
                 this.skill0.p.y=this.p.y+350;
 
@@ -260,24 +262,24 @@ window.addEventListener("load",function(){
           if(col.normalY < -0.3) { 
             if(p.vy > 0) { p.vy = 0; }
             col.impact = impactY;
-            entity.trigger("bump.bottom",col);
+            this.trigger("bump.bottom",col);
           }
           if(col.normalY > 0.3) {
             if(p.vy < 0) { p.vy = 0; }
             col.impact = impactY;
-            entity.trigger("bump.top",col);
+            this.trigger("bump.top",col);
           }
 
           if(col.normalX < -0.3) { 
             if(p.vx > 0) { p.vx = 0;  }
             col.impact = impactX;
-            entity.trigger("bump.right",col);
+            this.trigger("bump.right",col);
           }
           if(col.normalX > 0.3) { 
             if(p.vx < 0) { p.vx = 0; }
             col.impact = impactX;
 
-            entity.trigger("bump.left",col);
+            this.trigger("bump.left",col);
           }
         },
         hitTop: function(collision) {
@@ -291,7 +293,7 @@ window.addEventListener("load",function(){
           this.life--;
         
           //will be invincible for 1 second
-          this.p.timeInvincible = 1.5;
+          this.p.timeInvincible = 2;
           this.lifeBar.p.frame = 10-this.life;
                       //var lifeLabel = Q("UI.Text",999).items[0];
                       //lifeLabel.p.label = 'Lives x '+ this.player.life;
@@ -362,24 +364,6 @@ window.addEventListener("load",function(){
             this.box=new Q.Box({frame:[21],scale:0.4,x:this.p.x,y:this.p.y,vx:0,vy:0})
         },
     });
-    /*Q.Sprite.extend("Doge",{
-        init: function(p){
-            this._super(p,{sheet:"doge",sprite:"Doge",vx:0,vy:0,stand:"right"});
-            this.add("platformerControls");
-            this.add("animation");
-        },
-        step:function(){
-
-        }
-    });*/
-//Box animation
-    Q.animations("Box",{
-        unlock:{frames:[20],rate:1,loop:true},
-        delay_primary:{frames:[0,1,2,3,4],rate:1,loop:false,next:"unlock"},
-        delay_junior:{frames:[0,1,2,3,4,5,6,7,8,9],rate:1,loop:false,next:"unlock"},
-        delay_senior:{frames:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],rate:1,loop:false,next:"unlock"}
-    });
-            
         Q.component("swiftPlayer", {
         added: function () {
                 var entity = this.entity;
@@ -533,20 +517,12 @@ window.addEventListener("load",function(){
                 entity.on("bump.left,bump.right,bump.bottom,bump.top",function(collision) {
                     if(collision.obj.isA("Player")) {  
                       collision.obj.damage();                      
-                      //Q.stageScene("endGame",1, { label: "Game Over" }); 
-                      //collision.obj.destroy();
-                      /*collision.obj.life--;
-                      collision.obj.lifeBar.p.frame = 10-collision.obj.life;
-                      var lifeLabel = Q("UI.Text",999).items[0];
-                      lifeLabel.p.label = 'Lives x '+ this.player.life;
-                    
-                      if (this.player.life == 0) {
-                        Q.stageScene("endGame",9999, { label: "Game Over" }); 
-                        collision.obj.destroy();
-                      }*/
                     }
                     else if (collision.obj.isA("Bullet")) {
                         this.destroy();
+                        if (this.isA("blackEnemy")) {
+                          this.player.points++;
+                        }
                         this.player.points++;
                         var pointsLabel = Q("UI.Text",999).items[1];
                         pointsLabel.p.label = 'Points x '+ this.player.points;
@@ -555,14 +531,6 @@ window.addEventListener("load",function(){
                         }
                     }
                 });
-                /*entity.on("bump.top",function(collision) {
-                    if(collision.obj.isA("Player")) { 
-                        //make the player jump
-                        collision.obj.p.vy = -100;
-                        //kill enemy
-                        this.destroy();
-                    }
-                });*/
             },
         });        
         
@@ -621,7 +589,43 @@ window.addEventListener("load",function(){
                     }));
             }
         });
-        
+        Q.animations("blackEnemy",{
+        run_left:{frames:[5,6,7,8,9],rate:1/5,loop:true},
+        run_right:{frames:[0,1,2,3,4],rate:1/5,loop:true},
+        });
+        Q.Sprite.extend("blackEnemy",{
+            init: function(p,stage,player) {
+                this._super(p, { sheet: 'eval',sprite:'blackEnemy', vx: -20, vy: -20, rangeY: 1000,  defaultDirection: "left"});
+                this.add("3d, aiBounce, commonEnemy, animation"); 
+                this.on("touch");  
+                this.stage = stage;
+                this.player = player;
+                this.p.initialY = this.p.y;             
+            },
+            step: function(dt) {        
+                var dirX = this.p.vx/Math.abs(this.p.vx);
+                var ground = Q.stage().locate(this.p.x, this.p.y + this.p.h/2 + 1, Q.SPRITE_DEFAULT);
+                var nextTile = Q.stage().locate(this.p.x + dirX * this.p.w/2 + dirX, this.p.y + this.p.h/2 + 1, Q.SPRITE_DEFAULT);
+                if (dirX > 0) {
+                  this.play("run_right");
+                }
+                else{
+                  this.play("run_left");
+                }
+            },
+            touch: function (touch) {
+                var c = Math.sqrt(Math.pow(Math.abs(touch.origX - this.player.p.x),2)+Math.pow(Math.abs(touch.origY - this.player.p.y),2));
+                var ax = 500 * (touch.origX - this.player.p.x)/c;
+                var by = 500 * (touch.origY - this.player.p.y)/c;
+                this.stage.insert(new Q.Bullet({
+                    x:this.player.p.x + ax * 0.05, 
+                    y:this.player.p.y + by * 0.05,
+                    vx:ax,
+                    vy:by,
+                    }));
+            }   
+        });
+       
         Q.scene("level1",function(stage) {
           
             var background = new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex: 0, sheet: 'tiles', tileW: 30, tileH: 30, type: Q.SPRITE_NONE });
@@ -641,12 +645,15 @@ window.addEventListener("load",function(){
                 ["wanderEnemy", {x: 37*30, y: 69*30, asset: "slime.png"},stage,player],
                 ["wanderEnemy", {x: 37*30, y: 80*30, asset: "slime.png"},stage,player],
                 ["wanderEnemy", {x: 35*30, y: 82*30, asset: "slime.png"},stage,player],
-                ["wanderEnemy", {x: 35*30, y: 84*30, asset: "slime.png"},stage,player],
-                
+                ["wanderEnemy", {x: 92*30, y: 38*30, asset: "slime.png"},stage,player],
+                ["blackEnemy", {x: 32*30, y: 62*30},stage,player],
+                ["blackEnemy", {x: 18*30, y: 61*30},stage,player],
+                ["blackEnemy", {x: 102*30, y: 60*30},stage,player],
+                ["blackEnemy", {x: 94*30, y: 71*30},stage,player],
                 ["wanderEnemy", {x: 28*30, y: 79*30, asset: "slime.png"},stage,player],
                 ["wanderEnemy", {x: 31*30, y: 77*30, asset: "slime.png"},stage,player],
-                ["wanderEnemy", {x: 33*30, y: 76*30, asset: "slime.png"},stage,player],
-                ["wanderEnemy", {x: 18*30, y: 61*30, asset: "slime.png"},stage,player],
+                ["wanderEnemy", {x: 82*30, y: 86*30, asset: "slime.png"},stage,player],
+                ["wanderEnemy", {x: 96*30, y: 62*30, asset: "slime.png"},stage,player],
                 
                 ["wanderEnemy", {x: 14*30, y: 59*30, asset: "slime.png"},stage,player],
                 ["wanderEnemy", {x: 51*30, y: 11*30, asset: "slime.png"},stage,player],
@@ -739,7 +746,7 @@ stage.centerOn(1900,1600);
             var statsContainer = stage.insert(new Q.UI.Container({
                 fill: "gray",
                 x:  960/2,
-                y: 620,
+                y: 20,
                 border: 1,
                 shadow: 3,
                 shadowColor: "rgba(0,0,0,0.5)",
