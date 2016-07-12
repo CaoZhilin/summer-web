@@ -1,10 +1,13 @@
 window.addEventListener("load",function(){
-	var Q = Quintus()
-            .include("Sprites, Scenes, Input, 2D, Touch, UI,Anim")
-            .setup("map",{
-                maximize:true,
-                development:true
-            }).controls().touch(); 
+	var Q = Quintus();
+    Q.include("Sprites, Scenes, Input, 2D, Touch, UI,Anim")
+     .setup("map",{
+        maximize:true,
+        development:true
+        })
+     .controls()
+     .touch(Q.SPRITE_ALL);            
+        
     var Q_little=Quintus()
             	.include("Sprites, Scenes, Input, 2D, Touch, UI,Anim")
             	.setup("little-map",{
@@ -75,6 +78,57 @@ window.addEventListener("load",function(){
             this.add("animation");           
     	}
     });
+
+        Q.Sprite.extend("Bullet",{
+            init:function (p) {
+                this._super(p, { 
+                    sheet: "bullet",        // Spritesheet
+                    sprite: "bullet",
+                    x: 900, 
+                    y: 2340,
+                    vx: -200,
+                    vy:-200,
+                    w: 5,
+                    h: 5,
+                    scale: 0.5,
+                });
+                this.add("2d, animation, commonBullet");
+                //this.on("aim");
+            },
+            step: function (dt) {
+                this.p.x += this.p.vx*dt;
+                this.p.y += this.p.vy*dt;
+            },
+        });
+        //bullet的animation
+        Q.animations("bullet",{
+            boom: { frames: [0,1,2,3,4,5], rate: 1/15, loop:false},
+        });
+        Q.component("commonBullet",{
+            added: function () {
+                var entity = this.entity;
+                entity.on("bump.left, bump.right, bump.bottom, bump.top",function(collision){
+                    if (collision.obj.isA("wanderEnemy")) {
+                        this.play("boom");
+                        collision.obj.destroy();
+                        window.setTimeout(function(){
+                            entity.destroy();
+                        },333);
+                    }
+                    else if(collision.obj.isA("Player")){
+                        
+                    }
+                    else{
+                        this.play("boom");
+                        window.setTimeout(function(){
+                            //entity.play("boom");
+                            entity.destroy();
+                        },333);
+                    }
+                })
+            },
+           
+        });
     //component for common enemy behaviors
         Q.component("commonEnemy", {
             added: function() {
@@ -98,9 +152,13 @@ window.addEventListener("load",function(){
         
         //enemy that walks around          
         Q.Sprite.extend("wanderEnemy", {
-            init: function(p) {
-                this._super(p, {vx: -100, defaultDirection: "left"});
-                this.add("2d, aiBounce, commonEnemy");                
+            init: function(p,stage,player) {
+                this._super(p, {vx: -10, vy: -10, rangeY: 1000,  defaultDirection: "left"});
+                this.add("2d, aiBounce, commonEnemy"); 
+                this.on("touch");  
+                this.stage = stage;
+                this.player = player;
+                this.p.initialY = this.p.y;             
             },
             step: function(dt) {        
                 var dirX = this.p.vx/Math.abs(this.p.vx);
@@ -127,6 +185,25 @@ window.addEventListener("load",function(){
                     }
                     this.p.vx = -this.p.vx;
                 }
+
+                if(this.p.y - this.p.initialY >= this.p.rangeY && this.p.vy > 0) {
+                    this.p.vy = -this.p.vy;
+                } 
+                else if(-this.p.y + this.p.initialY >= this.p.rangeY && this.p.vy < 0) {
+                    this.p.vy = -this.p.vy;
+                } 
+            },
+            touch: function (touch) {
+                //alert("touch");
+                var c = Math.sqrt(Math.pow(Math.abs(touch.origX - this.player.p.x),2)+Math.pow(Math.abs(touch.origY - this.player.p.y),2));
+                var ax = 500 * (touch.origX - this.player.p.x)/c;
+                var by = 500 * (touch.origY - this.player.p.y)/c;
+                this.stage.insert(new Q.Bullet({
+                    x:this.player.p.x + ax * 0.05, 
+                    y:this.player.p.y + by * 0.05,
+                    vx:ax,
+                    vy:by,
+                    }));
             }
         });
     //animations
@@ -208,8 +285,10 @@ stage.centerOn(1900,1600);
         alert('aha');
         
         //load assets
-        Q.load("smallmap.png, player.png, liuli.png,zhilin.png,eval.png, level1.tmx,slime.png", function() {
-          Q.sheet("tiles","smallmap.png", { tilew: 30, tileh: 30});   
+        Q.load("smallmap.png, player.png, bullet.png, ba.png, liuli.png,zhilin.png,eval.png, level1.tmx,slime.png", function() {
+          Q.sheet("tiles","smallmap.png", { tilew: 30, tileh: 30});  
+          Q.sheet("blank","ba.png",{tilew:30,tileh:30});
+          Q.sheet("bullet","bullet.png",{tilew:60, tileh:65, sx:0, sy:0});
           Q.sheet("liuli","liuli.png",{tilew: 58,tileh: 100,sx: 0,sy: 0,w:2000,h: 100}); 
           Q.sheet("zhilin","zhilin.png",{tilew: 58,tileh: 100,sx: 0,sy: 0,w: 2000,h: 100});
           Q.sheet("eval","eval.png",{tilew: 70,tileh: 100,sx: 0,sy: 0,w: 2000,h: 100});
