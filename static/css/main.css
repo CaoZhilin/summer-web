@@ -370,21 +370,21 @@ li{
 	transition-delay: 0.21s;
 }
 #little-map_container{
-	width:450px;
-	height:225px;
+	width:350px;
+	height:150px;
 	margin:0;
 	position:absolute;
 	left:0;
-	top:04
+	bottom:0;
 	z-index:1000;
 }
 .little-map{
-	width:400px;
-	height:250px;
+	width:350px;
+	height:150px;
 	margin:0;
 	position:absolute;
 	left:0;
-	top:0;
+	bottom:0;
 	z-index:1000;
 	border:2px solid #47ded5;
 }
