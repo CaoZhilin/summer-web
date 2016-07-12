@@ -10,6 +10,8 @@ window.addEventListener("load",function(){
      .controls()
      .touch(Q.SPRITE_ALL);  
          
+
+         
     var Q_little=Quintus()
             	.include("Sprites, Scenes, Input, 2D, Touch, UI,Anim")
             	.setup("little-map",{
