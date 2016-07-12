@@ -7,7 +7,6 @@ window.addEventListener("load",function(){
         })
      .controls()
      .touch(Q.SPRITE_ALL);            
-        
     var Q_little=Quintus()
             	.include("Sprites, Scenes, Input, 2D, Touch, UI,Anim")
             	.setup("little-map",{
@@ -18,34 +17,15 @@ window.addEventListener("load",function(){
     $("#map_container").attr("style","");
     $("#little-map").attr("style","");
     $("#map").attr("style","");
-      
-        //player
-        /*Q.Sprite.extend("Player",{
-            init: function(p) {
-              this._super(p, { asset: "player.png", x: 900, y: 2340, jumpSpeed: -380});
-              this.add('2d, platformerControls');              
-            },
-            step: function(dt) {
-                if(Q.inputs['left'] && this.p.direction == 'right') {
-                    this.p.flip = 'x';
-                } 
-                if(Q.inputs['right']  && this.p.direction == 'left') {
-                    this.p.flip = false;                    
-                }
-            }                    
-          });*/
-    /*Q.animations('liuli',{run:{frames:[0,1,2,3,4],rate:1/8,loop:true},op_run:{frames:[9,8,7,6,5],rate:1/8,loop:true},die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}});
-    Q.animations('zhilin',{run:{frames:[0,1,2,3,4],rate:1/8,loop:true},op_run:{frames:[9,8,7,6,5],rate:1/8,loop:true},die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}});
-    Q.animations('eval',{run:{frames:[0,1,2,3,4],rate:1/8,loop:true},op_run:{frames:[9,8,7,6,5],rate:1/8,loop:true},die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}});*/
     Q.Sprite.extend("Player",{
             init: function(p) {
-              this._super(p, {sheet:"liuli",sprite:"Player", x: 900, y: 2340, vx:0,vy:0});
+              this._super(p, {sheet:"liuli",sprite:"Player", x: 900, y: 2340, vx:0,vy:0,flip:""});
               this.add('2d, platformerControls');
               this.add("animation");           
             },
             step:function(dt) {
         		if(Q.inputs['up']) {
-          		this.play("jump",1);      // add priority to animation
+          		this.play("jump"); 
         		} 
         		else if(Q.inputs['right']) {
         			this.p.vx=60;
@@ -57,7 +37,6 @@ window.addEventListener("load",function(){
           		} 
           		else if(Q.inputs['up']) {
           			this.p.vy=-30;
-          			this.flip="y";
           			this.play("jump");
           		} 
           		else if(Q.inputs['down']) {
@@ -71,33 +50,62 @@ window.addEventListener("load",function(){
           		}
     		},
           });
+    //animations
+    Q.animations('Player',{
+					run:{frames:[0,1,2,3,4],next:'stand_right',rate:1/5,loop:true},
+					op_run:{frames:[9,8,7,6,5],next: 'stand_left',rate:1/5,loop:true},
+					stand_left: {frames: [9]},
+					stand_right: {frames: [0]},
+					jump: {frames: [10], next:"stand_up",rate: 1},
+					drop:{frames: [10], next:"stand_down",rate: 1},
+					stand_up:{frames:[10]},
+					stand_down:{frames:[10]},
+					die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}
+				}
+	);
 //Box
-  /*  Q.Sprite.extend("Box",{
-    	init:function(p){
+   Q.Sprite.extend("Box",{
+    	init: function(p){
     		this._super(p,{sheet:"box",sprite:"Box",vx:0,vy:0});
-    		this.play("lock");
-    		this.add('2d, platformerControls');
+            state:"islock";
+            effect_class:"primary"; 
+            this.add("2d,platformerControls");
             this.add("animation");
-            state:lock;
-            effect_class:primary; 
-            this.on("touch");        
+            this.on("touch"); 
+            this.off("collision");
+            this.off("bump"); 
+            this.off("step"); 
+    	},
+    	touch: function(touch){
+    		if(this.p.state=="islock"){
+    			var notice=new Q.UI.Text({x:this.p.x,y:this.p.y,label:"你还不会这项技能",color:"#c956d1"});
+    			touch.stage.insert(notice);
+    			//notice.destroy({delay:2});
+    		}
+    		else if(this.p.state=="isdelay"){
+    			var notice=new Q.UI.Text({x:this.x,y:this.y,label:"技能正在冷却",color:"#c956d1"});
+    			touch.stage.insert(notice);
+    			//notice.destroy({delay:2});
+    		}
+    		else if(this.p.effect_class=="primary"){
+    			this.play("delay_primary");
+    		}
+    		else if(this.p.effect_class=="junior"){
+    			this.play("delay_junior");
+    		}
+    		else if(this.p.effect_class=="senior"){
+    			this.play("delay_senior");
+    		}
     	}
-    	touch:function(touch){
-    		if(this.p.state=="lock")
-    	}
-    	
-
-    });*/
+    });
 //Box animation
-	/*Q.animations("Box",{
-		lock:{frames[21],rate:1/16,loop:true,state:lock},
-		unlock:{frames[20],rate:1/16,loop:true,state:unlock},
-		delay_primary:{frames[0,1,2,3,4],rate:1,loop:false,state:delay,next:"unlock"},
-		delay_junior:{frames[0,1,2,3,4,5,6,7,8,9],rate:1,loop:false,state:delay,next:"unlock"},
-		delay_senior:{frames[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],rate:1,loop:false,state:delay,next:"unlock"}
-		}
-	});*/
-
+	Q.animations("Box",{
+		lock:{frames:[21],rate:1/16,loop:true,state:"islock"},
+		unlock:{frames:[20],rate:1/16,loop:true,state:"isunlock"},
+		delay_primary:{frames:[0,1,2,3,4],rate:5,loop:false,state:"isdelay",next:"unlock"},
+		delay_junior:{frames:[0,1,2,3,4,5,6,7,8,9],rate:10,loop:false,state:"isdelay",next:"unlock"},
+		delay_senior:{frames:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],rate:20,loop:false,state:"isdelay",next:"unlock"}
+	});
         Q.Sprite.extend("Bullet",{
             init:function (p) {
                 this._super(p, { 
@@ -116,17 +124,6 @@ window.addEventListener("load",function(){
             step: function (dt) {
                 this.p.x += this.p.vx*dt;
                 this.p.y += this.p.vy*dt;
-            },
-            touch: function (touch) {
-                var c = Math.sqrt(Math.pow(Math.abs(touch.origX - this.player.p.x),2)+Math.pow(Math.abs(touch.origY - this.player.p.y),2));
-                var ax = 500 * (touch.origX - this.player.p.x)/c;
-                var by = 500 * (touch.origY - this.player.p.y)/c;
-                this.stage.insert(new Q.Bullet({
-                    x:this.player.p.x + ax * 0.05, 
-                    y:this.player.p.y + by * 0.05,
-                    vx:ax,
-                    vy:by,
-                    }));
             }
         });
         //bullet的animation
@@ -235,19 +232,6 @@ window.addEventListener("load",function(){
                     }));
             }
         });
-    //animations
-    Q.animations('Player',{
-					run:{frames:[0,1,2,3,4],next:'stand_right',rate:1/4,loop:true},
-					op_run:{frames:[9,8,7,6,5],next: 'stand_left',rate:1/4,loop:true},
-					stand_left: {frames: [9]},
-					stand_right: {frames: [0]},
-					jump: {frames: [10], next:"stand_up",rate: 1},
-					drop:{frames: [10], next:"stand_down",rate: 1},
-					stand_up:{frames:[10]},
-					stand_down:{frames:[10]},
-					die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}
-				}
-	);
         
         Q.scene("level1",function(stage) {
           
@@ -269,6 +253,10 @@ window.addEventListener("load",function(){
             stage.insert(new Q.wanderEnemy({x: 37*30, y: 69*30, asset: "slime.png"}));
             //stage.loadAssets(levelAssets);  
             stage.add("viewport").follow(player,{x: true, y: true},{minX: 0, maxX: background.p.w, minY: 0, maxY: background.p.h});
+            stage.insert(new Q.Box({state:"islock", effect_class:"primary",scale:0.4,x:1200,y:2500,vy:0}));
+            //stage.insert(new Q.Box({state:"islock", effect_class:"junior",scale:0.4,x:1400,y:2500,vy:0}));
+            //stage.insert(new Q.Box({state:"isunlock", effect_class:"senior",scale:0.4,x:1600,y:2500,vy:0}));
+
 
         });
         Q_little.scene("level1",function(stage) {
@@ -290,7 +278,7 @@ window.addEventListener("load",function(){
             /*player.on("step","play('run')");
             player.on("prestep","play('op_run')");*/
 stage.add("viewport");
-stage.viewport.scale=0.28;
+stage.viewport.scale=0.23;
 stage.centerOn(1900,1600);
 
         });
@@ -317,7 +305,7 @@ stage.centerOn(1900,1600);
           Q.sheet("liuli","liuli.png",{tilew: 58,tileh: 100,sx: 0,sy: 0,w:2000,h: 100}); 
           Q.sheet("zhilin","zhilin.png",{tilew: 58,tileh: 100,sx: 0,sy: 0,w: 2000,h: 100});
           Q.sheet("eval","eval.png",{tilew: 70,tileh: 100,sx: 0,sy: 0,w: 2000,h: 100});
-          Q.sheet("box","box.png",{tilew:200,tileh:200,sx:0,sy:0});
+          Q.sheet("box","box.png",{tilew:200,tileh:200,sx:4200,sy:0});
           Q.stageScene("level1");
           Q_little.stageScene("level1");
          
