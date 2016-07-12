@@ -14,20 +14,22 @@
     </head>
     <body style="background-color: black;">
         <script>
-        var Q = Quintus()
-            .include("Sprites, Scenes, Input, 2D, Touch, UI")
-            .setup({
+        var Q = Quintus();
+            Q.include("Sprites, Scenes, Input, 2D, Touch, UI, Anim");
+            Q.setup({
                 width: 1500,
                 height: 1000,
                 development: true
-            }).controls().touch();            
-        
+            })
+            .controls().touch(Q.SPRITE_ALL);            
+        var whetherCreateBullet = false;
       
         //player
         Q.Sprite.extend("Player",{
-            init: function(p) {
+            init: function(p,stage) {
               this._super(p, { asset: "player.png", x: 900, y: 2340, jumpSpeed: -380});
-              this.add('2d, platformerControls');              
+              this.add("2d, platformerControls");  
+              this.stage = stage; 
             },
             step: function(dt) {
                 if(Q.inputs['left'] && this.p.direction == 'right') {
@@ -36,17 +38,50 @@
                 if(Q.inputs['right']  && this.p.direction == 'left') {
                     this.p.flip = false;                    
                 }
-            }                    
+                if(Q.inputs['fire'] ){
+                    alert('fire');
+                    Q.inputs['fire'] = false;
+                    
+                }
+            },  
           });
+        //bullet的animation
+        Q.animations("bullet",{
+            boom: { frames: [0,1,2,3,4,5], rate: 1/15, loop:false},
+        });
 
+        Q.Sprite.extend("Bullet",{
+            init:function (p) {
+                this._super(p, { 
+                    sheet: "bullet",        // Spritesheet
+                    sprite: "bullet",
+                    x: 900, 
+                    y: 2340,
+                    vx: -200,
+                    vy:-200,
+                    w: 5,
+                    h: 5,
+                    scale: 0.5,
+                });
+                this.add("2d, animation, commonBullet");
+                //this.on("aim");
+            },
+            step: function (dt) {
+                this.p.x += this.p.vx*dt;
+                this.p.y += this.p.vy*dt;
+            },
+        });
+
+       
+        
         //component for common enemy behaviors
         Q.component("commonEnemy", {
             added: function() {
                 var entity = this.entity;
                 entity.on("bump.left,bump.right,bump.bottom",function(collision) {
                     if(collision.obj.isA("Player")) {                        
-                      Q.stageScene("endGame",1, { label: "Game Over" }); 
-                      collision.obj.destroy();
+                     // Q.stageScene("endGame",1, { label: "Game Over" }); 
+                      //collision.obj.destroy();
                     }
                 });
                 entity.on("bump.top",function(collision) {
@@ -59,12 +94,41 @@
                 });
             },
         });        
+        Q.component("commonBullet",{
+            added: function () {
+                var entity = this.entity;
+                entity.on("bump.left, bump.right, bump.bottom, bump.top",function(collision){
+                    if (collision.obj.isA("wanderEnemy")) {
+                        this.play("boom");
+                        collision.obj.destroy();
+                        window.setTimeout(function(){
+                            entity.destroy();
+                        },333);
+                    }
+                    else if(collision.obj.isA("Player")){
+                        
+                    }
+                    else{
+                        this.play("boom");
+                        window.setTimeout(function(){
+                            //entity.play("boom");
+                            entity.destroy();
+                        },333);
+                    }
+                })
+            },
+           
+        });
         
         //enemy that walks around          
         Q.Sprite.extend("wanderEnemy", {
-            init: function(p) {
-                this._super(p, {vx: -100, defaultDirection: "left"});
-                this.add("2d, aiBounce, commonEnemy");                
+            init: function(p,stage,player) {
+                this._super(p, {vx: -10, vy: -10, rangeY: 1000,  defaultDirection: "left"});
+                this.add("2d, aiBounce, commonEnemy"); 
+                this.on("touch");  
+                this.stage = stage;
+                this.player = player;
+                this.p.initialY = this.p.y;             
             },
             step: function(dt) {        
                 var dirX = this.p.vx/Math.abs(this.p.vx);
@@ -91,6 +155,25 @@
                     }
                     this.p.vx = -this.p.vx;
                 }
+
+                if(this.p.y - this.p.initialY >= this.p.rangeY && this.p.vy > 0) {
+                    this.p.vy = -this.p.vy;
+                } 
+                else if(-this.p.y + this.p.initialY >= this.p.rangeY && this.p.vy < 0) {
+                    this.p.vy = -this.p.vy;
+                } 
+            },
+            touch: function (touch) {
+                //alert("touch");
+                var c = Math.sqrt(Math.pow(Math.abs(touch.origX - this.player.p.x),2)+Math.pow(Math.abs(touch.origY - this.player.p.y),2));
+                var ax = 500 * (touch.origX - this.player.p.x)/c;
+                var by = 500 * (touch.origY - this.player.p.y)/c;
+                this.stage.insert(new Q.Bullet({
+                    x:this.player.p.x + ax * 0.05, 
+                    y:this.player.p.y + by * 0.05,
+                    vx:ax,
+                    vy:by,
+                    }));
             }
         });
 
@@ -99,25 +182,23 @@
             var background = new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex: 0, sheet: 'tiles', tileW: 30, tileH: 30, type: Q.SPRITE_NONE });
             stage.insert(background);
             
-            stage.collisionLayer(new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex:1,  sheet: 'tiles', tileW: 30, tileH: 30 }));
+            stage.collisionLayer(new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex:1,  sheet: 'blank', tileW: 30, tileH: 30 }));
           
-            var player = stage.insert(new Q.Player());
+            var player = stage.insert(new Q.Player({},stage));
+            stage.insert(new Q.wanderEnemy({x: 37*30, y: 69*30, asset: "slime.png"}, stage, player));
+            stage.insert(new Q.wanderEnemy({x: 37*30, y: 80*30, asset: "slime.png"}, stage, player));
+            stage.insert(new Q.wanderEnemy({x: 35*30, y: 82*30, asset: "slime.png"}, stage, player));
+            stage.insert(new Q.wanderEnemy({x: 35*30, y: 84*30, asset: "slime.png"}, stage, player));
 
-            var levelAssets = [
-                ["wanderEnemy", {x: 37*30, y: 69*30, asset: "slime.png"}],
-                ["wanderEnemy", {x: 37*30, y: 80*30, asset: "slime.png"}],
-                ["wanderEnemy", {x: 35*30, y: 82*30, asset: "slime.png"}],
-                ["wanderEnemy", {x: 35*30, y: 84*30, asset: "slime.png"}]
-            ];
-            stage.insert(new Q.wanderEnemy({x: 37*30, y: 69*30, asset: "slime.png"}));
-            //stage.loadAssets(levelAssets);  
             stage.add("viewport").follow(player,{x: true, y: true},{minX: 0, maxX: background.p.w, minY: 0, maxY: background.p.h});
           
         });
         
         //load assets
-        Q.load("smallmap.png, player.png, level1.tmx, slime.png", function() {
-          Q.sheet("tiles","smallmap.png", { tilew: 30, tileh: 30});          
+        Q.load("smallmap.png, player.png, level1.tmx, ba.png, slime.png, bullet.png", function() {
+          Q.sheet("tiles","smallmap.png", { tilew: 30, tileh: 30}); 
+          Q.sheet("blank","ba.png",{tilew:30,tileh:30});
+          Q.sheet("bullet","bullet.png",{tilew:60, tileh:65, sx:0, sy:0});
           Q.stageScene("level1");
         });
         
