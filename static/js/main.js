@@ -31,16 +31,6 @@ window.addEventListener("load",function(){
                 }
             }                    
           });*/
-	Q.animations('Player',{
-							run:{frames:[0,1,2,3,4],next:'stand_right',rate:1/4,loop:true},
-							op_run:{frames:[9,8,7,6,5],next: 'stand_left',rate:1/4,loop:true},
-							stand_left: {frames: [9]},
-							stand_right: {frames: [0]},
-							jump: {frames: [10], next:"stand_up",rate: 1},
-							drop:{frames: [10], next:"stand_down",rate: 1},
-							stand_up:{frames:[10]},
-							stand_down:{frames:[10]},
-							die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}});
     /*Q.animations('liuli',{run:{frames:[0,1,2,3,4],rate:1/8,loop:true},op_run:{frames:[9,8,7,6,5],rate:1/8,loop:true},die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}});
     Q.animations('zhilin',{run:{frames:[0,1,2,3,4],rate:1/8,loop:true},op_run:{frames:[9,8,7,6,5],rate:1/8,loop:true},die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}});
     Q.animations('eval',{run:{frames:[0,1,2,3,4],rate:1/8,loop:true},op_run:{frames:[9,8,7,6,5],rate:1/8,loop:true},die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}});*/
@@ -64,6 +54,7 @@ window.addEventListener("load",function(){
           		} 
           		else if(Q.inputs['up']) {
           			this.p.vy=-30;
+          			this.flip="y";
           			this.play("jump");
           		} 
           		else if(Q.inputs['down']) {
@@ -77,6 +68,13 @@ window.addEventListener("load",function(){
           		}
     		},
           });
+    Q.sprite.extend("Box",{
+    	init:function(p){
+    		this._super(p,{sheet:"box",sprite:"box",vx:0,vy:0});
+    		this.add('2d, platformerControls');
+            this.add("animation");           
+    	};
+    });
         /*Q.Sprite.extend("liuli",{
         init:function(p){
             this._super(p,{sheet:"liuli",sprite:"liuli",frame:0});
@@ -93,7 +91,16 @@ window.addEventListener("load",function(){
             this.add("animation");
         }
     });*/
-    
+    Q.animations('Player',{
+							run:{frames:[0,1,2,3,4],next:'stand_right',rate:1/4,loop:true},
+							op_run:{frames:[9,8,7,6,5],next: 'stand_left',rate:1/4,loop:true},
+							stand_left: {frames: [9]},
+							stand_right: {frames: [0]},
+							jump: {frames: [10], next:"stand_up",rate: 1},
+							drop:{frames: [10], next:"stand_down",rate: 1},
+							stand_up:{frames:[10]},
+							stand_down:{frames:[10]},
+							die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}});
         
         Q.scene("level1",function(stage) {
           
