@@ -75,6 +75,60 @@ window.addEventListener("load",function(){
             this.add("animation");           
     	};
     });
+    //component for common enemy behaviors
+        Q.component("commonEnemy", {
+            added: function() {
+                var entity = this.entity;
+                entity.on("bump.left,bump.right,bump.bottom",function(collision) {
+                    if(collision.obj.isA("Player")) {                        
+                      Q.stageScene("endGame",1, { label: "Game Over" }); 
+                      collision.obj.destroy();
+                    }
+                });
+                entity.on("bump.top",function(collision) {
+                    if(collision.obj.isA("Player")) { 
+                        //make the player jump
+                        collision.obj.p.vy = -100;
+                        //kill enemy
+                        this.destroy();
+                    }
+                });
+            },
+        });        
+        
+        //enemy that walks around          
+        Q.Sprite.extend("wanderEnemy", {
+            init: function(p) {
+                this._super(p, {vx: -100, defaultDirection: "left"});
+                this.add("2d, aiBounce, commonEnemy");                
+            },
+            step: function(dt) {        
+                var dirX = this.p.vx/Math.abs(this.p.vx);
+                var ground = Q.stage().locate(this.p.x, this.p.y + this.p.h/2 + 1, Q.SPRITE_DEFAULT);
+                var nextTile = Q.stage().locate(this.p.x + dirX * this.p.w/2 + dirX, this.p.y + this.p.h/2 + 1, Q.SPRITE_DEFAULT);
+                
+                //if we are on ground and there is a cliff
+                if(!nextTile && ground) {
+                    if(this.p.vx > 0) {
+                        if(this.p.defaultDirection == "right") {
+                            this.p.flip = "x";
+                        }
+                        else {
+                            this.p.flip = false;
+                        }
+                    }
+                    else {
+                        if(this.p.defaultDirection == "left") {
+                            this.p.flip = "x";
+                        }
+                        else {
+                            this.p.flip = false;
+                        }
+                    }
+                    this.p.vx = -this.p.vx;
+                }
+            }
+        });
         /*Q.Sprite.extend("liuli",{
         init:function(p){
             this._super(p,{sheet:"liuli",sprite:"liuli",frame:0});
@@ -91,16 +145,23 @@ window.addEventListener("load",function(){
             this.add("animation");
         }
     });*/
-    Q.animations('Player',{
-							run:{frames:[0,1,2,3,4],next:'stand_right',rate:1/4,loop:true},
-							op_run:{frames:[9,8,7,6,5],next: 'stand_left',rate:1/4,loop:true},
-							stand_left: {frames: [9]},
-							stand_right: {frames: [0]},
-							jump: {frames: [10], next:"stand_up",rate: 1},
-							drop:{frames: [10], next:"stand_down",rate: 1},
-							stand_up:{frames:[10]},
-							stand_down:{frames:[10]},
-							die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}});
+    //animations
+    Q.animations({'Player',{
+					run:{frames:[0,1,2,3,4],next:'stand_right',rate:1/4,loop:true},
+					op_run:{frames:[9,8,7,6,5],next: 'stand_left',rate:1/4,loop:true},
+					stand_left: {frames: [9]},
+					stand_right: {frames: [0]},
+					jump: {frames: [10], next:"stand_up",rate: 1},
+					drop:{frames: [10], next:"stand_down",rate: 1},
+					stand_up:{frames:[10]},
+					stand_down:{frames:[10]},
+					die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}}
+				},
+				{'box',{
+
+				}
+				}
+	);
         
         Q.scene("level1",function(stage) {
           
@@ -113,8 +174,15 @@ window.addEventListener("load",function(){
             //var liuli=stage.insert(new Q.liuli({x:900,y:2340}));
             /*player.on("step","play('run')");
             player.on("prestep","play('op_run')");*/
-
-            stage.add("viewport").follow(player,{x: true, y: true});
+            var levelAssets = [
+                ["wanderEnemy", {x: 37*30, y: 69*30, asset: "slime.png"}],
+                ["wanderEnemy", {x: 37*30, y: 80*30, asset: "slime.png"}],
+                ["wanderEnemy", {x: 35*30, y: 82*30, asset: "slime.png"}],
+                ["wanderEnemy", {x: 35*30, y: 84*30, asset: "slime.png"}]
+            ];
+            stage.insert(new Q.wanderEnemy({x: 37*30, y: 69*30, asset: "slime.png"}));
+            //stage.loadAssets(levelAssets);  
+            stage.add("viewport").follow(player,{x: true, y: true},{minX: 0, maxX: background.p.w, minY: 0, maxY: background.p.h});
 
         });
         Q_little.scene("level1",function(stage) {
@@ -150,7 +218,7 @@ stage.centerOn(1900,1600);
         alert('aha');
         
         //load assets
-        Q.load("smallmap.png, player.png, liuli.png,zhilin.png,eval.png, level1.tmx", function() {
+        Q.load("smallmap.png, player.png, liuli.png,zhilin.png,eval.png, level1.tmx,slime.png", function() {
           Q.sheet("tiles","smallmap.png", { tilew: 30, tileh: 30});   
           Q.sheet("liuli","liuli.png",{tilew: 58,tileh: 100,sx: 0,sy: 0,w:2000,h: 100}); 
           Q.sheet("zhilin","zhilin.png",{tilew: 58,tileh: 100,sx: 0,sy: 0,w: 2000,h: 100});
