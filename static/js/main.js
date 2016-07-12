@@ -2,18 +2,21 @@ window.addEventListener("load",function(){
 	var Q = Quintus();
     Q.include("Sprites, Scenes, Input, 2D, Touch, UI,Anim")
      .setup("map",{
+      width: 960,
+      height: 640,
         maximize:true,
         development:true
         })
      .controls()
-     .touch(Q.SPRITE_ALL);            
+     .touch(Q.SPRITE_ALL);  
+
         
-    var Q_little=Quintus()
+    var Q_little = Quintus()
             	.include("Sprites, Scenes, Input, 2D, Touch, UI,Anim")
             	.setup("little-map",{
             		maximize:true,
                 development:true
-            }).controls().touch();         
+            }).controls().touch(Q.SPRITE_ALL);         
     $("#little-map_container").attr("style","");
     $("#map_container").attr("style","");
     $("#little-map").attr("style","");
@@ -23,16 +26,77 @@ window.addEventListener("load",function(){
             this._super(p,{sheet:"life"});
         },
     });
+    Q.component('3d',{
+    added: function() {
+      var entity = this.entity;
+      Q._defaults(entity.p,{
+        vx: 0,
+        vy: 0,
+        ax: 0,
+        ay: 0,
+        gravity: 0,
+        collisionMask: Q.SPRITE_DEFAULT
+      });
+      entity.on('hit',this,'collision');
+    },
+
+    collision: function(col,last) {
+      if (!col.obj.isA("lifeBar")) {
+        var entity = this.entity,
+          p = entity.p,
+          magnitude = 0;
+
+      if(col.obj.p && col.obj.p.sensor) {
+        col.obj.trigger("sensor",entity);
+        return;
+      }
+
+      col.impact = 0;
+      var impactX = Math.abs(p.vx);
+      var impactY = Math.abs(p.vy);
+
+      p.x -= col.separate[0];
+      p.y -= col.separate[1];
+
+      // Top collision
+      if(col.normalY < -0.3) { 
+        if(p.vy > 0) { p.vy = 0; }
+        col.impact = impactY;
+        entity.trigger("bump.bottom",col);
+      }
+      if(col.normalY > 0.3) {
+        if(p.vy < 0) { p.vy = 0; }
+        col.impact = impactY;
+        entity.trigger("bump.top",col);
+      }
+
+      if(col.normalX < -0.3) { 
+        if(p.vx > 0) { p.vx = 0;  }
+        col.impact = impactX;
+        entity.trigger("bump.right",col);
+      }
+      if(col.normalX > 0.3) { 
+        if(p.vx < 0) { p.vx = 0; }
+        col.impact = impactX;
+
+        entity.trigger("bump.left",col);
+      }
+      }
+    },
+  });
+
     Q.Sprite.extend("Player",{
             init: function(p) {
-              this._super(p, {sheet:"liuli",sprite:"Player", x: 900, y: 2340, vx:0,vy:0});
-              this.add('platformerControls, swiftPlayer');
+              this._super(p, {gravity: 0,
+        collisionMask: Q.SPRITE_DEFAULT, sheet:"liuli",sprite:"Player", w:0,h:0,x: 56*30, y: 60*30, vx:0,vy:0});
+              this.add('platformerControls, 3d, swiftPlayer');
               this.add("animation");
-              this.on("step",this,"step");
-              this.on("bump.top",this,"hitTop");    
-              this.on('hit',this,'collision');  
+              this.on("step",this,"step"); 
+              this.on("hitTop");
               this.life = 10; 
-              this.lifeBar = new Q.lifeBar({x:this.p.x, y:this.p.y+60});  
+              this.points = 0;
+              this.p.timeInvincible = 0;
+              this.lifeBar = new Q.lifeBar({x:this.p.x, y:this.p.y-100});  
             },
             step:function(dt) {
         		if(Q.inputs['up']) {
@@ -65,54 +129,39 @@ window.addEventListener("load",function(){
                 p.y += p.vy * dt;
              
                 this.lifeBar.p.x = this.p.x;
-                this.lifeBar.p.y = this.p.y + 50;
+                this.lifeBar.p.y = this.p.y - 100;
+              if(this.p.timeInvincible > 0) {
+                this.p.timeInvincible = Math.max(this.p.timeInvincible - dt, 0);
+              }
     		},
-            collision: function(col,last) {
-            var p = this.p,
-            magnitude = 0;
-
-            if(col.obj.p && col.obj.p.sensor) {
-                col.obj.trigger("sensor",entity);
-                return;
-            }
-
-            col.impact = 0;
-            var impactX = Math.abs(p.vx);
-            var impactY = Math.abs(p.vy);
-
-            p.x -= col.separate[0];
-            p.y -= col.separate[1];
-
-             // Top collision
-          if(col.normalY < -0.3) { 
-            if(p.vy > 0) { p.vy = 0; }
-            col.impact = impactY;
-            entity.trigger("bump.bottom",col);
-          }
-          if(col.normalY > 0.3) {
-            if(p.vy < 0) { p.vy = 0; }
-            col.impact = impactY;
-            alert("yes");
-            entity.trigger("bump.top",col);
-          }
-
-          if(col.normalX < -0.3) { 
-            if(p.vx > 0) { p.vx = 0;  }
-            col.impact = impactX;
-            entity.trigger("bump.right",col);
-          }
-          if(col.normalX > 0.3) { 
-            if(p.vx < 0) { p.vx = 0; }
-            col.impact = impactX;
-
-            entity.trigger("bump.left",col);
-          }
-        },
-        hitTop: function(collision) {
+            
+        hitTop: function hittop(collision) {
+            //alert("yes");
             if (collision.obj.isA("TileLayer") && collision.obj.y > this.p.y) {
                 this.p.vy = 0;
             }
         },
+        damage: function() {
+        //only damage if not in "invincible" mode, otherwise beign next to an enemy takes all the lives inmediatly
+        if(!this.p.timeInvincible) {
+          this.life--;
+        
+          //will be invincible for 1 second
+          this.p.timeInvincible = 1.5;
+          this.lifeBar.p.frame = 10-this.life;
+                      //var lifeLabel = Q("UI.Text",999).items[0];
+                      //lifeLabel.p.label = 'Lives x '+ this.player.life;
+        
+          if(this.life<0) {
+            this.destroy();
+            Q.stageScene("endGame",1, { label: "Game Over" }); 
+          }
+          else {
+            var livesLabel = Q("UI.Text",999).first();
+            livesLabel.p.label = "Lives x "+this.life;
+          }
+        }
+      }
     });
         Q.component("swiftPlayer", {
         added: function () {
@@ -179,24 +228,124 @@ window.addEventListener("load",function(){
             },
            
         });
+        //3d
+        Q.component('3d',{
+    added: function() {
+      var entity = this.entity;
+      Q._defaults(entity.p,{
+        vx: 0,
+        vy: 0,
+        ax: 0,
+        ay: 0,
+        gravity: 0,
+        collisionMask: Q.SPRITE_DEFAULT
+      });
+      entity.on('step',this,"step");
+      entity.on('hit',this,'collision');
+    },
+
+    collision: function(col,last) {
+      if (!col.obj.isA("lifeBar")) {
+        var entity = this.entity,
+          p = entity.p,
+          magnitude = 0;
+
+      if(col.obj.p && col.obj.p.sensor) {
+        col.obj.trigger("sensor",entity);
+        return;
+      }
+
+      col.impact = 0;
+      var impactX = Math.abs(p.vx);
+      var impactY = Math.abs(p.vy);
+
+      p.x -= col.separate[0];
+      p.y -= col.separate[1];
+
+      // Top collision
+      if(col.normalY < -0.3) { 
+        if(p.vy > 0) { p.vy = 0; }
+        col.impact = impactY;
+        entity.trigger("bump.bottom",col);
+      }
+      if(col.normalY > 0.3) {
+        if(p.vy < 0) { p.vy = 0; }
+        col.impact = impactY;
+
+        entity.trigger("bump.top",col);
+      }
+
+      if(col.normalX < -0.3) { 
+        if(p.vx > 0) { p.vx = 0;  }
+        col.impact = impactX;
+        entity.trigger("bump.right",col);
+      }
+      if(col.normalX > 0.3) { 
+        if(p.vx < 0) { p.vx = 0; }
+        col.impact = impactX;
+
+        entity.trigger("bump.left",col);
+      }
+      }
+    },
+
+    step: function(dt) {
+      var p = this.entity.p,
+          dtStep = dt;
+      // TODO: check the entity's magnitude of vx and vy,
+      // reduce the max dtStep if necessary to prevent 
+      // skipping through objects.
+      while(dtStep > 0) {
+        dt = Math.min(1/30,dtStep);
+        // Updated based on the velocity and acceleration
+        p.vx += p.ax * dt + (p.gravityX == void 0 ? Q.gravityX : p.gravityX) * dt * p.gravity;
+        p.vy += p.ay * dt + (p.gravityY == void 0 ? Q.gravityY : p.gravityY) * dt * p.gravity;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+
+        this.entity.stage.collide(this.entity);
+        dtStep -= dt;
+      }
+    }
+  });
+
     //component for common enemy behaviors
         Q.component("commonEnemy", {
             added: function() {
                 var entity = this.entity;
-                entity.on("bump.left,bump.right,bump.bottom",function(collision) {
-                    if(collision.obj.isA("Player")) {                        
-                      Q.stageScene("endGame",1, { label: "Game Over" }); 
-                      collision.obj.destroy();
+                entity.on("bump.left,bump.right,bump.bottom,bump.top",function(collision) {
+                    if(collision.obj.isA("Player")) {  
+                      collision.obj.damage();                      
+                      //Q.stageScene("endGame",1, { label: "Game Over" }); 
+                      //collision.obj.destroy();
+                      /*collision.obj.life--;
+                      collision.obj.lifeBar.p.frame = 10-collision.obj.life;
+                      var lifeLabel = Q("UI.Text",999).items[0];
+                      lifeLabel.p.label = 'Lives x '+ this.player.life;
+                    
+                      if (this.player.life == 0) {
+                        Q.stageScene("endGame",9999, { label: "Game Over" }); 
+                        collision.obj.destroy();
+                      }*/
+                    }
+                    else if (collision.obj.isA("Bullet")) {
+                        this.destroy();
+                        this.player.points++;
+                        var pointsLabel = Q("UI.Text",999).items[1];
+                        pointsLabel.p.label = 'Points x '+ this.player.points;
+                        if (this.player.points == 100) {
+                          Q.stageScene("winGame",1, { label: "You win!" });
+                        }
                     }
                 });
-                entity.on("bump.top",function(collision) {
+                /*entity.on("bump.top",function(collision) {
                     if(collision.obj.isA("Player")) { 
                         //make the player jump
                         collision.obj.p.vy = -100;
                         //kill enemy
                         this.destroy();
                     }
-                });
+                });*/
             },
         });        
         
@@ -204,7 +353,7 @@ window.addEventListener("load",function(){
         Q.Sprite.extend("wanderEnemy", {
             init: function(p,stage,player) {
                 this._super(p, {vx: -10, vy: -10, rangeY: 1000,  defaultDirection: "left"});
-                this.add("2d, aiBounce, commonEnemy"); 
+                this.add("3d, aiBounce, commonEnemy"); 
                 this.on("touch");  
                 this.stage = stage;
                 this.player = player;
@@ -283,13 +432,65 @@ window.addEventListener("load",function(){
             /*player.on("step","play('run')");
             player.on("prestep","play('op_run')");*/
             var levelAssets = [
-                ["wanderEnemy", {x: 37*30, y: 69*30, asset: "slime.png"}],
-                ["wanderEnemy", {x: 37*30, y: 80*30, asset: "slime.png"}],
-                ["wanderEnemy", {x: 35*30, y: 82*30, asset: "slime.png"}],
-                ["wanderEnemy", {x: 35*30, y: 84*30, asset: "slime.png"}]
+                ["wanderEnemy", {x: 37*30, y: 69*30, asset: "slime.png"},stage,player],
+                ["wanderEnemy", {x: 37*30, y: 80*30, asset: "slime.png"},stage,player],
+                ["wanderEnemy", {x: 35*30, y: 82*30, asset: "slime.png"},stage,player],
+                ["wanderEnemy", {x: 35*30, y: 84*30, asset: "slime.png"},stage,player],
+                
+                ["wanderEnemy", {x: 28*30, y: 79*30, asset: "slime.png"},stage,player],
+                ["wanderEnemy", {x: 31*30, y: 77*30, asset: "slime.png"},stage,player],
+                ["wanderEnemy", {x: 33*30, y: 76*30, asset: "slime.png"},stage,player],
+                ["wanderEnemy", {x: 18*30, y: 61*30, asset: "slime.png"},stage,player],
+                
+                ["wanderEnemy", {x: 14*30, y: 59*30, asset: "slime.png"},stage,player],
+                ["wanderEnemy", {x: 51*30, y: 11*30, asset: "slime.png"},stage,player],
+                ["wanderEnemy", {x: 53*30, y: 10*30, asset: "slime.png"},stage,player],
+                ["wanderEnemy", {x: 51*30, y: 12*30, asset: "slime.png"},stage,player]
             ];
-            stage.insert(new Q.wanderEnemy({x: 37*30, y: 69*30, asset: "slime.png"},stage,player));
-            //stage.loadAssets(levelAssets);  
+            //stage.insert(new Q.wanderEnemy({x: 37*30, y: 69*30, asset: "slime.png"},stage,player));
+            stage.loadAssets(levelAssets);
+            
+            window.setTimeout(function(){
+              stage.loadAssets(levelAssets);
+            } ,30000);
+            window.setTimeout(function(){
+              stage.loadAssets(levelAssets);
+            } ,60000);
+            window.setTimeout(function(){
+              stage.loadAssets(levelAssets);
+            }, 90000);
+            window.setTimeout(function(){
+              stage.loadAssets(levelAssets);
+            }, 120000);
+            window.setTimeout(function(){
+              stage.loadAssets(levelAssets);
+            } ,150000);
+            window.setTimeout(function(){
+              stage.loadAssets(levelAssets);
+            } ,180000);
+            window.setTimeout(function(){
+              stage.loadAssets(levelAssets);
+            } ,210000);
+            window.setTimeout(function(){
+              stage.loadAssets(levelAssets);
+            } ,240000);
+            window.setTimeout(function(){
+              stage.loadAssets(levelAssets);
+            } ,270000);
+            window.setTimeout(function(){
+              stage.loadAssets(levelAssets);
+            } ,300000);
+            window.setTimeout(function(){
+              stage.loadAssets(levelAssets);
+            } ,330000);
+            window.setTimeout(function(){
+              stage.loadAssets(levelAssets);
+            } ,360000);
+            window.setTimeout(function(){
+              stage.loadAssets(levelAssets);
+            } ,390000);
+            //stage.loadAssets(levelAssets);
+            //setTimeout("this.stage.loadAssets(levelAssets)",2000);
             stage.add("viewport").follow(player,{x: true, y: true},{minX: 0, maxX: background.p.w, minY: 0, maxY: background.p.h});
 
         });
@@ -301,13 +502,10 @@ window.addEventListener("load",function(){
             stage.collisionLayer(new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex:1,  sheet: 'blank', tileW: 30, tileH: 30 }));
           
             var player = stage.insert(new Q.Player({scale:1.5}));
-            var levelAssets = [
-                ["wanderEnemy", {x: 37*30, y: 69*30, asset: "slime.png"}],
-                ["wanderEnemy", {x: 37*30, y: 80*30, asset: "slime.png"}],
-                ["wanderEnemy", {x: 35*30, y: 82*30, asset: "slime.png"}],
-                ["wanderEnemy", {x: 35*30, y: 84*30, asset: "slime.png"}]
-            ];
-            stage.insert(new Q.wanderEnemy({x: 37*30, y: 69*30, asset: "slime.png"}));
+            //stage.insert(new Q.wanderEnemy({x: 37*30, y: 69*30, asset: "slime.png"},stage,player));
+            //stage.insert(new Q.wanderEnemy({x: 37*30, y: 80*30, asset: "slime.png"},stage,player));
+            //stage.insert(new Q.wanderEnemy({x: 35*30, y: 82*30, asset: "slime.png"},stage,player));
+            //stage.insert(new Q.wanderEnemy({x: 35*30, y: 84*30, asset: "slime.png"},stage,player));
             //var liuli=stage.insert(new Q.liuli({x:900,y:2340}));
             /*player.on("step","play('run')");
             player.on("prestep","play('op_run')");*/
@@ -330,6 +528,44 @@ stage.centerOn(1900,1600);
             stage.centerOn(650,300);
         });*/
 
+        Q.scene("gameStats", function(stage) {
+            var statsContainer = stage.insert(new Q.UI.Container({
+                fill: "gray",
+                x:  960/2,
+                y: 620,
+                border: 1,
+                shadow: 3,
+                shadowColor: "rgba(0,0,0,0.5)",
+                w: 960,
+                h: 40
+                })
+            );
+            var lives = stage.insert(new Q.UI.Text({ 
+                    label: "Lives x 10",
+                    color: "white",
+                    x: -300,
+                    y: 0
+                }),statsContainer);
+            
+            var coins = stage.insert(new Q.UI.Text({ 
+                    label: "Points x 0",
+                    color: "white",
+                    x: 300,
+                    y: 0
+                }),statsContainer);
+                
+             
+        });
+        Q.scene("endGame",function(stage) {
+            var pointsLabel = Q("UI.Text",999).items[1];
+            alert("game over,your mark is " + pointsLabel.p.label);
+            window.location = "";
+        });
+        Q.scene("winGame",function(stage) {
+            //var pointsLabel = Q("UI.Text",999).items[1];
+            alert("win the game by kill 100 enemys");
+            window.location = "";
+        });
         
         //load assets
         Q.load("smallmap.png,life.png,direction.png,box.png, player.png, bullet.png, ba.png, liuli.png,zhilin.png,eval.png, level1.tmx,slime.png", function() {
@@ -342,8 +578,9 @@ stage.centerOn(1900,1600);
           Q.sheet("eval","eval.png",{tilew: 70,tileh: 100,sx: 0,sy: 0,w: 2000,h: 100});
           Q.sheet("box","box.png",{tilew:200,tileh:200,sx:0,sy:0});
           Q.stageScene("level1");
+          Q.stageScene("gameStats",999);
           Q_little.stageScene("level1");
-         
+          
         });
         
         
