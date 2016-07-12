@@ -18,30 +18,21 @@ window.addEventListener("load",function(){
     $("#map_container").attr("style","");
     $("#little-map").attr("style","");
     $("#map").attr("style","");
-      
-        //player
-        /*Q.Sprite.extend("Player",{
-            init: function(p) {
-              this._super(p, { asset: "player.png", x: 900, y: 2340, jumpSpeed: -380});
-              this.add('2d, platformerControls');              
-            },
-            step: function(dt) {
-                if(Q.inputs['left'] && this.p.direction == 'right') {
-                    this.p.flip = 'x';
-                } 
-                if(Q.inputs['right']  && this.p.direction == 'left') {
-                    this.p.flip = false;                    
-                }
-            }                    
-          });*/
-    /*Q.animations('liuli',{run:{frames:[0,1,2,3,4],rate:1/8,loop:true},op_run:{frames:[9,8,7,6,5],rate:1/8,loop:true},die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}});
-    Q.animations('zhilin',{run:{frames:[0,1,2,3,4],rate:1/8,loop:true},op_run:{frames:[9,8,7,6,5],rate:1/8,loop:true},die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}});
-    Q.animations('eval',{run:{frames:[0,1,2,3,4],rate:1/8,loop:true},op_run:{frames:[9,8,7,6,5],rate:1/8,loop:true},die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}});*/
+    Q.Sprite.extend("lifeBar",{
+        init:function(p){
+            this._super(p,{sheet:"life"});
+        },
+    });
     Q.Sprite.extend("Player",{
             init: function(p) {
               this._super(p, {sheet:"liuli",sprite:"Player", x: 900, y: 2340, vx:0,vy:0});
-              this.add('2d, platformerControls');
-              this.add("animation");           
+              this.add('platformerControls, swiftPlayer');
+              this.add("animation");
+              this.on("step",this,"step");
+              this.on("bump.top",this,"hitTop");    
+              this.on('hit',this,'collision');  
+              this.life = 10; 
+              this.lifeBar = new Q.lifeBar({x:this.p.x, y:this.p.y+60});  
             },
             step:function(dt) {
         		if(Q.inputs['up']) {
@@ -69,35 +60,76 @@ window.addEventListener("load",function(){
           			this.p.vx=0;
           			this.p.vy=0;
           		}
+                var p = this.p;
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+             
+                this.lifeBar.p.x = this.p.x;
+                this.lifeBar.p.y = this.p.y + 50;
     		},
-          });
-//Box
-  /*  Q.Sprite.extend("Box",{
-    	init:function(p){
-    		this._super(p,{sheet:"box",sprite:"Box",vx:0,vy:0});
-    		this.play("lock");
-    		this.add('2d, platformerControls');
-            this.add("animation");
-            state:lock;
-            effect_class:primary; 
-            this.on("touch");        
-    	}
-    	touch:function(touch){
-    		if(this.p.state=="lock")
-    	}
-    	
+            collision: function(col,last) {
+            var p = this.p,
+            magnitude = 0;
 
-    });*/
-//Box animation
-	/*Q.animations("Box",{
-		lock:{frames[21],rate:1/16,loop:true,state:lock},
-		unlock:{frames[20],rate:1/16,loop:true,state:unlock},
-		delay_primary:{frames[0,1,2,3,4],rate:1,loop:false,state:delay,next:"unlock"},
-		delay_junior:{frames[0,1,2,3,4,5,6,7,8,9],rate:1,loop:false,state:delay,next:"unlock"},
-		delay_senior:{frames[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],rate:1,loop:false,state:delay,next:"unlock"}
-		}
-	});*/
+            if(col.obj.p && col.obj.p.sensor) {
+                col.obj.trigger("sensor",entity);
+                return;
+            }
 
+            col.impact = 0;
+            var impactX = Math.abs(p.vx);
+            var impactY = Math.abs(p.vy);
+
+            p.x -= col.separate[0];
+            p.y -= col.separate[1];
+
+             // Top collision
+          if(col.normalY < -0.3) { 
+            if(p.vy > 0) { p.vy = 0; }
+            col.impact = impactY;
+            entity.trigger("bump.bottom",col);
+          }
+          if(col.normalY > 0.3) {
+            if(p.vy < 0) { p.vy = 0; }
+            col.impact = impactY;
+            alert("yes");
+            entity.trigger("bump.top",col);
+          }
+
+          if(col.normalX < -0.3) { 
+            if(p.vx > 0) { p.vx = 0;  }
+            col.impact = impactX;
+            entity.trigger("bump.right",col);
+          }
+          if(col.normalX > 0.3) { 
+            if(p.vx < 0) { p.vx = 0; }
+            col.impact = impactX;
+
+            entity.trigger("bump.left",col);
+          }
+        },
+        hitTop: function(collision) {
+            if (collision.obj.isA("TileLayer") && collision.obj.y > this.p.y) {
+                this.p.vy = 0;
+            }
+        },
+    });
+        Q.component("swiftPlayer", {
+        added: function () {
+                var entity = this.entity;
+                entity.on("bump.left, bump.right, bump.bottom, bump.top",function(collision){
+                    if (collision.obj.isA("wanderEnemy")) {
+                    //交由怪物碰撞处理
+                     entity.p.vx = 0;
+                     entity.p.vy = 0;
+                    }
+                    else{
+                        
+                    }
+                });
+            },
+           
+        });
         Q.Sprite.extend("Bullet",{
             init:function (p) {
                 this._super(p, { 
@@ -116,17 +148,6 @@ window.addEventListener("load",function(){
             step: function (dt) {
                 this.p.x += this.p.vx*dt;
                 this.p.y += this.p.vy*dt;
-            },
-            touch: function (touch) {
-                var c = Math.sqrt(Math.pow(Math.abs(touch.origX - this.player.p.x),2)+Math.pow(Math.abs(touch.origY - this.player.p.y),2));
-                var ax = 500 * (touch.origX - this.player.p.x)/c;
-                var by = 500 * (touch.origY - this.player.p.y)/c;
-                this.stage.insert(new Q.Bullet({
-                    x:this.player.p.x + ax * 0.05, 
-                    y:this.player.p.y + by * 0.05,
-                    vx:ax,
-                    vy:by,
-                    }));
             }
         });
         //bullet的animation
@@ -257,6 +278,7 @@ window.addEventListener("load",function(){
             stage.collisionLayer(new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex:1,  sheet: 'blank', tileW: 30, tileH: 30 }));
           
             var player = stage.insert(new Q.Player({scale:1.5}));
+            stage.insert(player.lifeBar);
             //var liuli=stage.insert(new Q.liuli({x:900,y:2340}));
             /*player.on("step","play('run')");
             player.on("prestep","play('op_run')");*/
@@ -266,7 +288,7 @@ window.addEventListener("load",function(){
                 ["wanderEnemy", {x: 35*30, y: 82*30, asset: "slime.png"}],
                 ["wanderEnemy", {x: 35*30, y: 84*30, asset: "slime.png"}]
             ];
-            stage.insert(new Q.wanderEnemy({x: 37*30, y: 69*30, asset: "slime.png"}));
+            stage.insert(new Q.wanderEnemy({x: 37*30, y: 69*30, asset: "slime.png"},stage,player));
             //stage.loadAssets(levelAssets);  
             stage.add("viewport").follow(player,{x: true, y: true},{minX: 0, maxX: background.p.w, minY: 0, maxY: background.p.h});
 
@@ -310,8 +332,9 @@ stage.centerOn(1900,1600);
 
         
         //load assets
-        Q.load("smallmap.png,direction.png,box.png, player.png, bullet.png, ba.png, liuli.png,zhilin.png,eval.png, level1.tmx,slime.png", function() {
-          Q.sheet("tiles","smallmap.png", { tilew: 30, tileh: 30});  
+        Q.load("smallmap.png,life.png,direction.png,box.png, player.png, bullet.png, ba.png, liuli.png,zhilin.png,eval.png, level1.tmx,slime.png", function() {
+          Q.sheet("tiles","smallmap.png", { tilew: 30, tileh: 30});
+          Q.sheet("life","life.png", { tilew: 23*5, tileh: 23});  
           Q.sheet("blank","ba.png",{tilew:30,tileh:30});
           Q.sheet("bullet","bullet.png",{tilew:60, tileh:65, sx:0, sy:0});
           Q.sheet("liuli","liuli.png",{tilew: 58,tileh: 100,sx: 0,sy: 0,w:2000,h: 100}); 
