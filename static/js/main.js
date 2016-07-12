@@ -48,11 +48,11 @@ window.addEventListener("load",function(){
           		this.play("jump",1);      // add priority to animation
         		} 
         		else if(Q.inputs['right']) {
-        			this.p.vx=30;
+        			this.p.vx=60;
           			this.play("run");
         		}
         		else if(Q.inputs['left']) {
-          			this.p.vx=-30;
+          			this.p.vx=-60;
           			this.play("op_run");
           		} 
           		else if(Q.inputs['up']) {
@@ -71,13 +71,32 @@ window.addEventListener("load",function(){
           		}
     		},
           });
-    Q.Sprite.extend("Box",{
+//Box
+  /*  Q.Sprite.extend("Box",{
     	init:function(p){
-    		this._super(p,{sheet:"box",sprite:"box",vx:0,vy:0});
+    		this._super(p,{sheet:"box",sprite:"Box",vx:0,vy:0});
+    		this.play("lock");
     		this.add('2d, platformerControls');
-            this.add("animation");           
+            this.add("animation");
+            state:lock;
+            effect_class:primary; 
+            this.on("touch");        
     	}
-    });
+    	touch:function(touch){
+    		if(this.p.state=="lock")
+    	}
+    	
+
+    });*/
+//Box animation
+	/*Q.animations("Box",{
+		lock:{frames[21],rate:1/16,loop:true,state:lock},
+		unlock:{frames[20],rate:1/16,loop:true,state:unlock},
+		delay_primary:{frames[0,1,2,3,4],rate:1,loop:false,state:delay,next:"unlock"},
+		delay_junior:{frames[0,1,2,3,4,5,6,7,8,9],rate:1,loop:false,state:delay,next:"unlock"},
+		delay_senior:{frames[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],rate:1,loop:false,state:delay,next:"unlock"}
+		}
+	});*/
 
         Q.Sprite.extend("Bullet",{
             init:function (p) {
@@ -93,12 +112,22 @@ window.addEventListener("load",function(){
                     scale: 0.5,
                 });
                 this.add("2d, animation, commonBullet");
-                //this.on("aim");
             },
             step: function (dt) {
                 this.p.x += this.p.vx*dt;
                 this.p.y += this.p.vy*dt;
             },
+            touch: function (touch) {
+                var c = Math.sqrt(Math.pow(Math.abs(touch.origX - this.player.p.x),2)+Math.pow(Math.abs(touch.origY - this.player.p.y),2));
+                var ax = 500 * (touch.origX - this.player.p.x)/c;
+                var by = 500 * (touch.origY - this.player.p.y)/c;
+                this.stage.insert(new Q.Bullet({
+                    x:this.player.p.x + ax * 0.05, 
+                    y:this.player.p.y + by * 0.05,
+                    vx:ax,
+                    vy:by,
+                    }));
+            }
         });
         //bullet的animation
         Q.animations("bullet",{
@@ -207,7 +236,7 @@ window.addEventListener("load",function(){
             }
         });
     //animations
-    Q.animations({'Player',{
+    Q.animations('Player',{
 					run:{frames:[0,1,2,3,4],next:'stand_right',rate:1/4,loop:true},
 					op_run:{frames:[9,8,7,6,5],next: 'stand_left',rate:1/4,loop:true},
 					stand_left: {frames: [9]},
@@ -217,9 +246,6 @@ window.addEventListener("load",function(){
 					stand_up:{frames:[10]},
 					stand_down:{frames:[10]},
 					die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}
-				}},
-				{
-					
 				}
 	);
         
@@ -228,7 +254,7 @@ window.addEventListener("load",function(){
             var background = new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex: 0, sheet: 'tiles', tileW: 30, tileH: 30, type: Q.SPRITE_NONE });
             stage.insert(background);
             
-            stage.collisionLayer(new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex:1,  sheet: 'tiles', tileW: 30, tileH: 30 }));
+            stage.collisionLayer(new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex:1,  sheet: 'blank', tileW: 30, tileH: 30 }));
           
             var player = stage.insert(new Q.Player({scale:1.5}));
             //var liuli=stage.insert(new Q.liuli({x:900,y:2340}));
@@ -250,9 +276,9 @@ window.addEventListener("load",function(){
             var background = new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex: 0, sheet: 'tiles', tileW: 30, tileH: 30, type: Q.SPRITE_NONE });
             stage.insert(background);
             
-            stage.collisionLayer(new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex:1,  sheet: 'tiles', tileW: 30, tileH: 30 }));
+            stage.collisionLayer(new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex:1,  sheet: 'blank', tileW: 30, tileH: 30 }));
           
-            var player = stage.insert(new Q.Player({scale:2}));
+            var player = stage.insert(new Q.Player({scale:1.5}));
             var levelAssets = [
                 ["wanderEnemy", {x: 37*30, y: 69*30, asset: "slime.png"}],
                 ["wanderEnemy", {x: 37*30, y: 80*30, asset: "slime.png"}],
@@ -282,16 +308,16 @@ stage.centerOn(1900,1600);
             stage.centerOn(650,300);
         });*/
 
-        alert('aha');
         
         //load assets
-        Q.load("smallmap.png, player.png, bullet.png, ba.png, liuli.png,zhilin.png,eval.png, level1.tmx,slime.png", function() {
+        Q.load("smallmap.png,direction.png,box.png, player.png, bullet.png, ba.png, liuli.png,zhilin.png,eval.png, level1.tmx,slime.png", function() {
           Q.sheet("tiles","smallmap.png", { tilew: 30, tileh: 30});  
           Q.sheet("blank","ba.png",{tilew:30,tileh:30});
           Q.sheet("bullet","bullet.png",{tilew:60, tileh:65, sx:0, sy:0});
           Q.sheet("liuli","liuli.png",{tilew: 58,tileh: 100,sx: 0,sy: 0,w:2000,h: 100}); 
           Q.sheet("zhilin","zhilin.png",{tilew: 58,tileh: 100,sx: 0,sy: 0,w: 2000,h: 100});
           Q.sheet("eval","eval.png",{tilew: 70,tileh: 100,sx: 0,sy: 0,w: 2000,h: 100});
+          Q.sheet("box","box.png",{tilew:200,tileh:200,sx:0,sy:0});
           Q.stageScene("level1");
           Q_little.stageScene("level1");
          
