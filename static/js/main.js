@@ -129,24 +129,8 @@ window.addEventListener("load",function(){
                 }
             }
         });
-        /*Q.Sprite.extend("liuli",{
-        init:function(p){
-            this._super(p,{sheet:"liuli",sprite:"liuli",frame:0});
-            this.add("animation");
-        }
-        Q.Sprite.extend("zhilin",{
-        init:function(p){
-            this._super(p,{sheet:"zhilin",sprite:"zhilin",frame:0});
-            this.add("animation");
-        }
-        Q.Sprite.extend("eval",{
-        init:function(p){
-            this._super(p,{sheet:"liuli",sprite:"liuli",frame:0});
-            this.add("animation");
-        }
-    });*/
     //animations
-    Q.animations('Player',{
+    Q.animations({'Player',{
 					run:{frames:[0,1,2,3,4],next:'stand_right',rate:1/4,loop:true},
 					op_run:{frames:[9,8,7,6,5],next: 'stand_left',rate:1/4,loop:true},
 					stand_left: {frames: [9]},
@@ -156,6 +140,9 @@ window.addEventListener("load",function(){
 					stand_up:{frames:[10]},
 					stand_down:{frames:[10]},
 					die:{frames:[],rate:1/4},hurt:{frames:[],rate:1/2}
+				}},
+				{
+					
 				}
 	);
         
@@ -189,6 +176,13 @@ window.addEventListener("load",function(){
             stage.collisionLayer(new Q.TileLayer({ dataAsset: 'level1.tmx', layerIndex:1,  sheet: 'tiles', tileW: 30, tileH: 30 }));
           
             var player = stage.insert(new Q.Player({scale:2}));
+            var levelAssets = [
+                ["wanderEnemy", {x: 37*30, y: 69*30, asset: "slime.png"}],
+                ["wanderEnemy", {x: 37*30, y: 80*30, asset: "slime.png"}],
+                ["wanderEnemy", {x: 35*30, y: 82*30, asset: "slime.png"}],
+                ["wanderEnemy", {x: 35*30, y: 84*30, asset: "slime.png"}]
+            ];
+            stage.insert(new Q.wanderEnemy({x: 37*30, y: 69*30, asset: "slime.png"}));
             //var liuli=stage.insert(new Q.liuli({x:900,y:2340}));
             /*player.on("step","play('run')");
             player.on("prestep","play('op_run')");*/
